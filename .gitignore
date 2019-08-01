@@ -1,0 +1,6 @@
+/vendor/
+/.idea/
+/src-generated/
+composer.lock
+.php_cs.cache
+.DS_Store

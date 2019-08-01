@@ -1,0 +1,53 @@
+model:
+  # External models
+  # ==========================
+
+  - name: EntityId
+    type: String
+    testing:
+      constructor: "'2f985cc4313b46dd09651727c59f18ab1453fb2f'"
+      fromNative: "'2f985cc4313b46dd09651727c59f18ab1453fb2f'"
+    namespace: Funeralzone\FAS\DomainEntities
+
+  - name: Notes
+    type: EntitySet
+    namespace: Funeralzone\FAS\Common\ValueObjects\Notes
+
+  - name: NoteAuthorId
+    type: Uuid
+    namespace: Funeralzone\FAS\Common\ValueObjects\Note\NoteAuthorId
+
+  - name: NoteContent
+    type: String
+    namespace: Funeralzone\FAS\Common\ValueObjects\Note\NoteContent
+
+  - name: Name
+    type: Composite
+    namespace: Funeralzone\FAS\Common\ValueObjects\Name
+
+  - name: Tags
+    type: Set
+    namespace: Funeralzone\FAS\Common\ValueObjects\Tags
+
+  - name: PaginationInput
+    type: Composite
+    namespace: Funeralzone\FAS\Common\ValueObjects\PaginationInput
+
+  - name: PaginationInputOld
+    type: Composite
+    namespace: Funeralzone\FAS\Common\ValueObjects\PaginationInputOld
+
+  - name: GenericSortOrderInput
+    type: Composite
+    namespace: Funeralzone\FAS\Common\ValueObjects\GenericSortOrderInput
+
+  - name: GenericSortOrderInputs
+    type: Set
+    namespace: Funeralzone\FAS\Common\ValueObjects\GenericSortOrderInputs
+
+  - name: SortOrderDirection
+    type: Enum
+    namespace: Funeralzone\FAS\Common\ValueObjects\SortOrderDirection
+    values:
+      - ASCENDING
+      - DESCENDING

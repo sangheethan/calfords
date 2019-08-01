@@ -1,0 +1,49 @@
+{
+  "name": "funeralzone/calfords",
+  "description": "Representation of the Calfords business domain.",
+  "type": "project",
+  "authors": [
+    {
+      "name": "Chris Harrison",
+      "email": "chris.harrison@funeralzone.co.uk"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://satisfy.fztools.com/"
+    }
+  ],
+  "require": {
+    "php": "^7.2",
+    "ext-json": "*",
+    "react/promise": "^2.5",
+    "edgallois/fas-base-app": "^20.5",
+    "edgallois/fas-valueobject-generator-types": "^4.1"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^6.2",
+    "squizlabs/php_codesniffer": "^3.0",
+    "phpspec/prophecy": "~1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Funeralzone\\Calfords\\": "src/",
+      "Funeralzone\\Calfords\\Model\\": "src-generated/"
+    }
+  },
+  "scripts": {
+    "post-update-cmd": [
+      "@generate",
+      "@generateRecursive"
+    ],
+    "generate": "vendor/bin/generate --noCodeFixes",
+    "generateRecursive": "vendor/bin/generate --noCodeFixes --recurseFolder=vendor/edgallois"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "preferred-install": "dist",
+    "optimize-autoloader": true
+  }
+}
