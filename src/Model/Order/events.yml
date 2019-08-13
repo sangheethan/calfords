@@ -1,3 +1,29 @@
 namespace: Order\Events
 
 model:
+
+- name: OrderWasCreated
+  type: Event
+  tags:
+    - CREATING_AGGREGATE
+  children:
+  - name: BusinessName
+    type: String
+    propertyName: businessName
+    required: true
+  - name: BusinessAddress
+    type: Address
+    propertyName: businessAddress
+    required: true
+  - name: ContactPerson
+    type: Name
+    propertyName: contactPerson
+    required: true
+  - name: OrderHasPaid
+    type: Boolean
+    propertyName: hasPaid
+    required: true
+  - name: OrderAmount
+    type: Money
+    propertyName: amount
+    required: true
