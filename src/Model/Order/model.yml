@@ -1,0 +1,21 @@
+namespace: Order
+
+model:
+
+- name: OrderId
+  type: Uuid
+
+- name: BusinessName
+  type: String
+
+- name: BusinessAddress
+  type: Address
+
+- name: ContactPerson
+  type: String
+
+- name: OrderHasPaid
+  type: Boolean
+
+- name: OrderAmount
+  type: Money

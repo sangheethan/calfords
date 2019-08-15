@@ -7,23 +7,22 @@ model:
   tags:
     - CREATING_AGGREGATE
   children:
+  - name: OrderId
+    propertyName: id
+    required: true
+    fromMetaDataKey: _aggregate_id
   - name: BusinessName
-    type: String
     propertyName: businessName
     required: true
   - name: BusinessAddress
-    type: Address
     propertyName: businessAddress
     required: true
   - name: ContactPerson
-    type: Name
     propertyName: contactPerson
     required: true
   - name: OrderHasPaid
-    type: Boolean
     propertyName: hasPaid
     required: true
   - name: OrderAmount
-    type: Money
     propertyName: amount
     required: true
