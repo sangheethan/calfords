@@ -1,16 +1,22 @@
 <?php
-
+// @codingStandardsIgnoreFile
 declare(strict_types=1);
 
 namespace Funeralzone\Calfords\Model\Order;
 
+use Funeralzone\Calfords\Model\Order\BusinessAddress\BusinessAddress;
+use Funeralzone\Calfords\Model\Order\BusinessName\BusinessName;
+use Funeralzone\Calfords\Model\Order\ContactPerson\ContactPerson;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasCreated\OrderWasCreated;
-use Funeralzone\Calfords\Model\Order\OrderId\NonNullOrderId;
+use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustBeGreaterThanZero;
+use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustNotBeNegative;
+use Funeralzone\Calfords\Model\Order\OrderAmount\OrderAmount;
+use Funeralzone\Calfords\Model\Order\OrderHasPaid\OrderHasPaid;
+use Funeralzone\Calfords\Model\Order\OrderId\OrderId;
 use Funeralzone\FAS\Common\AggregateTestingTrait;
-use Money\Currency;
-use Money\Money;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+
 
 final class OrderTest extends TestCase
 {
@@ -18,6 +24,7 @@ final class OrderTest extends TestCase
 	private function getAggregate($amount): Order
 	{
 		$id = Uuid::uuid4()->toString();
+		/** @var Order $order */
 		$order = $this->reconstituteAggregateFromHistory(
 			Order::class,
 			[
@@ -40,40 +47,36 @@ final class OrderTest extends TestCase
 		);
 		return $order;
 	}
-    public function test_order_amount_not_negative()
+	private function createOrder($amount)
+    {
+        Order::create(
+            OrderId::generate(),
+            BusinessName::fromNative("Jimmy's car rental"),
+            BusinessAddress::fromNative([
+                'addressLine1' => "No 3. Exeter Road",
+                'addressLine2' => "",
+                'town' => "Exeter",
+                'county' => "Devon",
+                'postcode' => "EX2 4QE",
+                'countryCode' => "GB"
+            ]),
+            ContactPerson::fromNative("Jimmy Neutron"),
+            OrderHasPaid::true(),
+            OrderAmount::fromNative([
+                "amount" => $amount,
+                "currency" => "gbp"
+            ])
+        );
+    }
+    public function test_order_amount_cannot_be_negative()
 	{
-		$amount = new Money(50, new Currency('gbp'));
-		$amount->negative();
-		$order = Order::create(
-			NonNullOrderId::generate(),
-			"Jimmy's car rental",
-			[
-				'addressLine1' => "No 3. Exeter Road",
-				'addressLine2' => "",
-				'town' => "Exeter",
-				'county' => "Devon",
-				'postcode' => "EX2 4QE",
-				'countryCode' => "GB"
-			],
-			"Jimmy Neutron",
-			true,
-			[
-				"amount" => -50,
-				"currency" => "gbp"
-			]
-		);
-		$events = $this->popRecordedEvents($order);
-		$event = $events[0];
-		$this->assertInstanceOf(OrderWasCreated::class, $event);
-		$this->assertTrue($event->getAmount()->getMoney()->isNegative());
+        $this->expectException(OrderAmountMustNotBeNegative::class);
+		$this->createOrder(-50);
     }
 
     public function test_order_amount_cannot_be_zero()
 	{
-		$order = $this->getAggregate([
-			"amount" => 0,
-			"currency" => "gbp"
-		]);
-		$this->assertTrue($order->getAmount()->getMoney()->isZero());
+        $this->expectException(OrderAmountMustBeGreaterThanZero::class);
+        $this->createOrder(0);
     }
 }

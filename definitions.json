@@ -1,9 +1,9 @@
 {
   "files": [
     "./src/Model/supporting-definition.yml",
-    "./src/Model/Order/commands.yml",
-    "./src/Model/Order/events.yml",
-    "./src/Model/Order/queries.yml",
-    "./src/Model/Order/model.yml"
+    "./src/Model/Order/definitions/commands.yml",
+    "./src/Model/Order/definitions/events.yml",
+    "./src/Model/Order/definitions/queries.yml",
+    "./src/Model/Order/definitions/model.yml"
   ]
 }

@@ -19,3 +19,4 @@ model:
 
 - name: OrderAmount
   type: Money
+  valueShouldBeGreaterThanZero: true

@@ -1,33 +1,47 @@
 <?php
 declare(strict_types=1);
 
-namespace Funeralzone\calfords\Model\Order;
+namespace Funeralzone\Calfords\Model\Order;
 
+use Funeralzone\Calfords\Model\Order\BusinessAddress\BusinessAddress;
 use Funeralzone\Calfords\Model\Order\BusinessAddress\NonNullBusinessAddress;
+use Funeralzone\Calfords\Model\Order\BusinessName\BusinessName;
 use Funeralzone\Calfords\Model\Order\BusinessName\NonNullBusinessName;
+use Funeralzone\Calfords\Model\Order\ContactPerson\ContactPerson;
 use Funeralzone\Calfords\Model\Order\ContactPerson\NonNullContactPerson;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasCreated\OrderWasCreated;
+use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustBeGreaterThanZero;
+use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustNotBeNegative;
 use Funeralzone\Calfords\Model\Order\OrderAmount\NonNullOrderAmount;
+use Funeralzone\Calfords\Model\Order\OrderAmount\OrderAmount;
 use Funeralzone\Calfords\Model\Order\OrderHasPaid\NonNullOrderHasPaid;
+use Funeralzone\Calfords\Model\Order\OrderHasPaid\OrderHasPaid;
 use Funeralzone\Calfords\Model\Order\OrderId\NonNullOrderId;
+use Funeralzone\Calfords\Model\Order\OrderId\OrderId;
 use Funeralzone\FAS\FasApp\Prooph\ApplyDeltaTrait;
 use Funeralzone\FAS\FasApp\Prooph\EventSourcing\SerialisableAggregateRoot;
 use Prooph\EventSourcing\AggregateChanged;
 use Prooph\EventSourcing\AggregateRoot;
 
-class Order extends AggregateRoot implements SerialisableAggregateRoot
+final class Order extends AggregateRoot implements SerialisableAggregateRoot
 {
 	use ApplyDeltaTrait;
+	/** @var  NonNullOrderId $id */
 	private $id;
+	/** @var  NonNullBusinessName $businessName */
 	private $businessName;
+	/** @var  NonNullBusinessAddress $businessAddress */
 	private $businessAddress;
+	/** @var  NonNullContactPerson $contactPerson */
 	private $contactPerson;
+	/** @var  NonNullOrderHasPaid $hasPaid */
 	private $hasPaid;
+	/** @var  NonNullOrderAmount $amount */
 	private $amount;
 
 	protected function aggregateId(): string
 	{
-		return $this->id;
+		return $this->id->toNative();
 	}
 
 	public function getId(): NonNullOrderId
@@ -78,33 +92,38 @@ class Order extends AggregateRoot implements SerialisableAggregateRoot
 	 *
 	 * @return static
 	 */
-	public static function fromNative(array $native)
+	public static function fromNative(array $native): self
 	{
-		// TODO: Implement fromNative() method.
+		return new self();
 	}
 
 	public function toNative(): array
 	{
-		// TODO: Implement toNative() method.
+		return [];
 	}
 
 	public static function create(
-		$id,
-		$businessName,
-		$businessAddress,
-		$contactPerson,
-		$hasPaid,
-		$amount
-	): Order
-	{
+		OrderId $id,
+		BusinessName $businessName,
+		BusinessAddress $businessAddress,
+		ContactPerson $contactPerson,
+		OrderHasPaid $hasPaid,
+		OrderAmount $amount
+	): Order {
+		if($amount->getMoney()->isZero()) {
+			throw new OrderAmountMustBeGreaterThanZero($amount);
+		}
+        if($amount->getMoney()->isNegative()) {
+            throw new OrderAmountMustNotBeNegative($amount);
+        }
 		$instance = new self();
 		$instance->recordThat(
 			OrderWasCreated::occur($id->toNative(), [
-				'businessName' => $businessName,
-				'businessAddress' => $businessAddress,
-				'contactPerson' => $contactPerson,
-				'hasPaid' => $hasPaid,
-				'amount' => $amount
+				'businessName' => $businessName->toNative(),
+				'businessAddress' => $businessAddress->toNative(),
+				'contactPerson' => $contactPerson->toNative(),
+				'hasPaid' => $hasPaid->toNative(),
+				'amount' => $amount->toNative()
 			])
 		);
 		return $instance;
