@@ -10,6 +10,7 @@ use Funeralzone\Calfords\Model\Order\BusinessName\NonNullBusinessName;
 use Funeralzone\Calfords\Model\Order\ContactPerson\ContactPerson;
 use Funeralzone\Calfords\Model\Order\ContactPerson\NonNullContactPerson;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasCreated\OrderWasCreated;
+use Funeralzone\Calfords\Model\Order\Events\OrderWasPaid\OrderWasPaid;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustBeGreaterThanZero;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustNotBeNegative;
 use Funeralzone\Calfords\Model\Order\OrderAmount\NonNullOrderAmount;
@@ -34,7 +35,7 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     private $businessAddress;
     /** @var  NonNullContactPerson $contactPerson */
     private $contactPerson;
-    /** @var  NonNullOrderIsPaid $hasPaid */
+    /** @var  NonNullOrderIsPaid $isPaid */
     private $isPaid;
     /** @var  NonNullOrderAmount $amount */
     private $amount;
@@ -64,9 +65,9 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         return $this->contactPerson;
     }
 
-    public function getHasPaid(): NonNullOrderIsPaid
+    public function getIsPaid(): NonNullOrderIsPaid
     {
-        return $this->hasPaid;
+        return $this->isPaid;
     }
 
     public function getAmount(): NonNullOrderAmount
@@ -103,12 +104,12 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     }
 
     public static function create(
-        OrderId $id,
-        BusinessName $businessName,
-        BusinessAddress $businessAddress,
-        ContactPerson $contactPerson,
-        OrderIsPaid $isPaid,
-        OrderAmount $amount
+        NonNullOrderId $id,
+        NonNullBusinessName $businessName,
+        NonNullBusinessAddress $businessAddress,
+        NonNullContactPerson $contactPerson,
+        NonNullOrderIsPaid $isPaid,
+        NonNullOrderAmount $amount
     ): Order {
         if ($amount->getMoney()->isZero()) {
             throw new OrderAmountMustBeGreaterThanZero($amount);
@@ -122,7 +123,7 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
                 'businessName' => $businessName->toNative(),
                 'businessAddress' => $businessAddress->toNative(),
                 'contactPerson' => $contactPerson->toNative(),
-                'hasPaid' => $isPaid->toNative(),
+                'isPaid' => $isPaid->toNative(),
                 'amount' => $amount->toNative(),
             ])
         );
@@ -131,11 +132,26 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
 
     private function applyOrderWasCreated(OrderWasCreated $event): void
     {
-        $this->id              = $event->getId();
-        $this->businessName    = $event->getBusinessName();
+        $this->id = $event->getId();
+        $this->businessName = $event->getBusinessName();
         $this->businessAddress = $event->getBusinessAddress();
-        $this->contactPerson   = $event->getContactPerson();
-        $this->isPaid          = $event->getHasPaid();
-        $this->amount          = $event->getAmount();
+        $this->contactPerson = $event->getContactPerson();
+        $this->isPaid = $event->getIsPaid();
+        $this->amount = $event->getAmount();
+    }
+
+    public function pay(): void
+    {
+        $this->recordThat(
+            OrderWasPaid::occur($this->getId()->toNative(), [
+                'isPaid' => NonNullOrderIsPaid::true()
+            ])
+        );
+    }
+
+    private function applyOrderWasPaid(OrderWasPaid $event): void
+    {
+        $this->id = $event->getId();
+        $this->isPaid = NonNullOrderIsPaid::true();
     }
 }

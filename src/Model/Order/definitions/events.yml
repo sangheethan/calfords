@@ -26,3 +26,11 @@ model:
   - name: OrderAmount
     propertyName: amount
     required: true
+
+- name: OrderWasPaid
+  type: Event
+  children:
+  - name: OrderId
+    propertyName: id
+    required: true
+    fromMetaDataKey: _aggregate_id

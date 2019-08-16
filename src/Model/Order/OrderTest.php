@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Funeralzone\Calfords\Model\Order;
 
-use Funeralzone\Calfords\Model\Order\BusinessAddress\BusinessAddress;
-use Funeralzone\Calfords\Model\Order\BusinessName\BusinessName;
-use Funeralzone\Calfords\Model\Order\ContactPerson\ContactPerson;
+use Funeralzone\Calfords\Model\Order\BusinessAddress\NonNullBusinessAddress;
+use Funeralzone\Calfords\Model\Order\BusinessName\NonNullBusinessName;
+use Funeralzone\Calfords\Model\Order\ContactPerson\NonNullContactPerson;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasCreated\OrderWasCreated;
+use Funeralzone\Calfords\Model\Order\Events\OrderWasPaid\OrderWasPaid;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustBeGreaterThanZero;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustNotBeNegative;
-use Funeralzone\Calfords\Model\Order\OrderAmount\OrderAmount;
-use Funeralzone\Calfords\Model\Order\OrderId\OrderId;
-use Funeralzone\Calfords\Model\Order\OrderIsPaid\OrderIsPaid;
+use Funeralzone\Calfords\Model\Order\OrderAmount\NonNullOrderAmount;
+use Funeralzone\Calfords\Model\Order\OrderId\NonNullOrderId;
+use Funeralzone\Calfords\Model\Order\OrderIsPaid\NonNullOrderIsPaid;
 use Funeralzone\FAS\Common\AggregateTestingTrait;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -41,7 +42,7 @@ final class OrderTest extends TestCase
                         'countryCode' => "GB",
                     ],
                     'contactPerson' => "Jimmy Neutron",
-                    'hasPaid' => true,
+                    'isPaid' => true,
                     'amount' => $amount,
                 ]),
             ]
@@ -49,12 +50,14 @@ final class OrderTest extends TestCase
         return $order;
     }
 
-    private function createOrder($amount)
+    public function test_order_amount_cannot_be_negative()
     {
+        $this->expectException(OrderAmountMustNotBeNegative::class);
+        $amount = -50;
         Order::create(
-            OrderId::generate(),
-            BusinessName::fromNative("Jimmy's car rental"),
-            BusinessAddress::fromNative([
+            NonNullOrderId::generate(),
+            NonNullBusinessName::fromNative("Jimmy's car rental"),
+            NonNullBusinessAddress::fromNative([
                 'addressLine1' => "No 3. Exeter Road",
                 'addressLine2' => "",
                 'town' => "Exeter",
@@ -62,24 +65,51 @@ final class OrderTest extends TestCase
                 'postcode' => "EX2 4QE",
                 'countryCode' => "GB",
             ]),
-            ContactPerson::fromNative("Jimmy Neutron"),
-            OrderIsPaid::true(),
-            OrderAmount::fromNative([
+            NonNullContactPerson::fromNative("Jimmy Neutron"),
+            NonNullOrderIsPaid::true(),
+            NonNullOrderAmount::fromNative([
                 "amount" => $amount,
                 "currency" => "gbp",
             ])
         );
     }
 
-    public function test_order_amount_cannot_be_negative()
-    {
-        $this->expectException(OrderAmountMustNotBeNegative::class);
-        $this->createOrder(-50);
-    }
-
     public function test_order_amount_cannot_be_zero()
     {
         $this->expectException(OrderAmountMustBeGreaterThanZero::class);
-        $this->createOrder(0);
+        $amount = 0;
+        Order::create(
+            NonNullOrderId::generate(),
+            NonNullBusinessName::fromNative("Jimmy's car rental"),
+            NonNullBusinessAddress::fromNative([
+                'addressLine1' => "No 3. Exeter Road",
+                'addressLine2' => "",
+                'town' => "Exeter",
+                'county' => "Devon",
+                'postcode' => "EX2 4QE",
+                'countryCode' => "GB",
+            ]),
+            NonNullContactPerson::fromNative("Jimmy Neutron"),
+            NonNullOrderIsPaid::true(),
+            NonNullOrderAmount::fromNative([
+                "amount" => $amount,
+                "currency" => "gbp",
+            ])
+        );
+    }
+
+    public function test_order_should_record_the_time_it_was_paid()
+    {
+        $order = $this->getAggregate([
+            "amount" => "50",
+            "currency" => "gbp",
+        ]);
+        $order->pay();
+        $events = $this->popRecordedEvents($order);
+        /** @var OrderWasPaid $event */
+        $event = $events[0];
+        $this->assertInstanceOf(OrderWasPaid::class, $event);
+        $this->assertTrue($order->getIsPaid()->toNative());
+        $this->assertNotNull($event->createdAt());
     }
 }
