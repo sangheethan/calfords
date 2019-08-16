@@ -20,8 +20,8 @@ model:
   - name: ContactPerson
     propertyName: contactPerson
     required: true
-  - name: OrderHasPaid
-    propertyName: hasPaid
+  - name: OrderIsPaid
+    propertyName: isPaid
     required: true
   - name: OrderAmount
     propertyName: amount

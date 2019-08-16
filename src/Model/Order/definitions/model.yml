@@ -14,9 +14,8 @@ model:
 - name: ContactPerson
   type: String
 
-- name: OrderHasPaid
+- name: OrderIsPaid
   type: Boolean
 
 - name: OrderAmount
   type: Money
-  valueShouldBeGreaterThanZero: true
