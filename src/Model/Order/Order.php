@@ -3,23 +3,17 @@ declare(strict_types=1);
 
 namespace Funeralzone\Calfords\Model\Order;
 
-use Funeralzone\Calfords\Model\Order\BusinessAddress\BusinessAddress;
 use Funeralzone\Calfords\Model\Order\BusinessAddress\NonNullBusinessAddress;
-use Funeralzone\Calfords\Model\Order\BusinessName\BusinessName;
 use Funeralzone\Calfords\Model\Order\BusinessName\NonNullBusinessName;
-use Funeralzone\Calfords\Model\Order\ContactPerson\ContactPerson;
 use Funeralzone\Calfords\Model\Order\ContactPerson\NonNullContactPerson;
-use Funeralzone\Calfords\Model\Order\DatePaid\NonNullDatePaid;
+use Funeralzone\Calfords\Model\Order\DatePaid\DatePaid;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasCreated\OrderWasCreated;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasPaid\OrderWasPaid;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustBeGreaterThanZero;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustNotBeNegative;
 use Funeralzone\Calfords\Model\Order\OrderAmount\NonNullOrderAmount;
-use Funeralzone\Calfords\Model\Order\OrderAmount\OrderAmount;
 use Funeralzone\Calfords\Model\Order\OrderId\NonNullOrderId;
-use Funeralzone\Calfords\Model\Order\OrderId\OrderId;
 use Funeralzone\Calfords\Model\Order\OrderIsPaid\NonNullOrderIsPaid;
-use Funeralzone\Calfords\Model\Order\OrderIsPaid\OrderIsPaid;
 use Funeralzone\FAS\FasApp\Prooph\ApplyDeltaTrait;
 use Funeralzone\FAS\FasApp\Prooph\EventSourcing\SerialisableAggregateRoot;
 use Prooph\EventSourcing\AggregateChanged;
@@ -40,7 +34,7 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     private $isPaid;
     /** @var  NonNullOrderAmount $amount */
     private $amount;
-    /** @var  NonNullDatePaid */
+    /** @var  DatePaid $datePaid */
     private $datePaid;
 
     protected function aggregateId(): string
@@ -78,7 +72,7 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         return $this->amount;
     }
 
-    public function getDatePaid(): NonNullDatePaid
+    public function getDatePaid(): DatePaid
     {
         return $this->datePaid;
     }
@@ -146,14 +140,14 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         $this->contactPerson = $event->getContactPerson();
         $this->isPaid = $event->getIsPaid();
         $this->amount = $event->getAmount();
+        $this->datePaid = DatePaid::null();
     }
 
-    public function pay(NonNullDatePaid $datePaid): void
+    public function pay(): void
     {
         $this->recordThat(
             OrderWasPaid::occur($this->getId()->toNative(), [
-                'isPaid' => NonNullOrderIsPaid::true(),
-                'datePaid' => $datePaid->toNative()
+                'isPaid' => NonNullOrderIsPaid::true()
             ])
         );
     }
@@ -162,6 +156,6 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     {
         $this->id = $event->getId();
         $this->isPaid = NonNullOrderIsPaid::true();
-        $this->datePaid = $event->getDatePaid();
+        $this->datePaid = DatePaid::fromNative($event->createdAt()->format(DATE_RFC3339));
     }
 }

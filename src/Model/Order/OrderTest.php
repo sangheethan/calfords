@@ -44,7 +44,7 @@ final class OrderTest extends TestCase
                         'countryCode' => "GB",
                     ],
                     'contactPerson' => "Jimmy Neutron",
-                    'isPaid' => true,
+                    'isPaid' => false,
                     'amount' => $amount,
                 ]),
             ]
@@ -106,13 +106,12 @@ final class OrderTest extends TestCase
             "amount" => "50",
             "currency" => "gbp",
         ]);
-        $datePaid = NonNullDatePaid::fromNative((new DateTimeImmutable('2019-08-10 23:59:59'))->format(DATE_RFC3339));
-        $order->pay($datePaid);
+        $this->assertNull($order->getDatePaid()->toNative());
+        $order->pay();
         $events = $this->popRecordedEvents($order);
         /** @var OrderWasPaid $event */
         $event = $events[0];
         $this->assertInstanceOf(OrderWasPaid::class, $event);
-        $this->assertTrue($order->getIsPaid()->toNative());
-        $this->assertNotNull($event->getDatePaid());
+        $this->assertNotNull($order->getDatePaid()->toNative());
     }
 }
