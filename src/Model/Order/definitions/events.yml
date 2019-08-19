@@ -34,3 +34,6 @@ model:
     propertyName: id
     required: true
     fromMetaDataKey: _aggregate_id
+  - name: DatePaid
+    propertyName: datePaid
+    required: true

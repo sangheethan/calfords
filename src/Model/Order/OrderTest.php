@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Funeralzone\Calfords\Model\Order;
 
+use DateTimeImmutable;
 use Funeralzone\Calfords\Model\Order\BusinessAddress\NonNullBusinessAddress;
 use Funeralzone\Calfords\Model\Order\BusinessName\NonNullBusinessName;
 use Funeralzone\Calfords\Model\Order\ContactPerson\NonNullContactPerson;
+use Funeralzone\Calfords\Model\Order\DatePaid\NonNullDatePaid;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasCreated\OrderWasCreated;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasPaid\OrderWasPaid;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustBeGreaterThanZero;
@@ -104,12 +106,13 @@ final class OrderTest extends TestCase
             "amount" => "50",
             "currency" => "gbp",
         ]);
-        $order->pay();
+        $datePaid = NonNullDatePaid::fromNative((new DateTimeImmutable('2019-08-10 23:59:59'))->format(DATE_RFC3339));
+        $order->pay($datePaid);
         $events = $this->popRecordedEvents($order);
         /** @var OrderWasPaid $event */
         $event = $events[0];
         $this->assertInstanceOf(OrderWasPaid::class, $event);
         $this->assertTrue($order->getIsPaid()->toNative());
-        $this->assertNotNull($event->createdAt());
+        $this->assertNotNull($event->getDatePaid());
     }
 }

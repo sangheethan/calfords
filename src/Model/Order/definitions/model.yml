@@ -19,3 +19,6 @@ model:
 
 - name: OrderAmount
   type: Money
+
+- name: DatePaid
+  type: RFC3339

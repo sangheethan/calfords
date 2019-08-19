@@ -9,6 +9,7 @@ use Funeralzone\Calfords\Model\Order\BusinessName\BusinessName;
 use Funeralzone\Calfords\Model\Order\BusinessName\NonNullBusinessName;
 use Funeralzone\Calfords\Model\Order\ContactPerson\ContactPerson;
 use Funeralzone\Calfords\Model\Order\ContactPerson\NonNullContactPerson;
+use Funeralzone\Calfords\Model\Order\DatePaid\NonNullDatePaid;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasCreated\OrderWasCreated;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasPaid\OrderWasPaid;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustBeGreaterThanZero;
@@ -39,6 +40,8 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     private $isPaid;
     /** @var  NonNullOrderAmount $amount */
     private $amount;
+    /** @var  NonNullDatePaid */
+    private $datePaid;
 
     protected function aggregateId(): string
     {
@@ -73,6 +76,11 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     public function getAmount(): NonNullOrderAmount
     {
         return $this->amount;
+    }
+
+    public function getDatePaid(): NonNullDatePaid
+    {
+        return $this->datePaid;
     }
 
     /**
@@ -140,11 +148,12 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         $this->amount = $event->getAmount();
     }
 
-    public function pay(): void
+    public function pay(NonNullDatePaid $datePaid): void
     {
         $this->recordThat(
             OrderWasPaid::occur($this->getId()->toNative(), [
-                'isPaid' => NonNullOrderIsPaid::true()
+                'isPaid' => NonNullOrderIsPaid::true(),
+                'datePaid' => $datePaid->toNative()
             ])
         );
     }
@@ -153,5 +162,6 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     {
         $this->id = $event->getId();
         $this->isPaid = NonNullOrderIsPaid::true();
+        $this->datePaid = $event->getDatePaid();
     }
 }
