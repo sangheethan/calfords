@@ -146,9 +146,7 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     public function pay(): void
     {
         $this->recordThat(
-            OrderWasPaid::occur($this->getId()->toNative(), [
-                'isPaid' => NonNullOrderIsPaid::true()
-            ])
+            OrderWasPaid::occur($this->getId()->toNative())
         );
     }
 
