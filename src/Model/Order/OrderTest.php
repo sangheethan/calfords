@@ -82,4 +82,45 @@ final class OrderTest extends TestCase
         $this->expectException(OrderAmountMustBeGreaterThanZero::class);
         $this->createOrder(0);
     }
+
+    public function test_when_no_payments_have_been_made_that_the_payment_status_is_unpaid()
+    {
+
+    }
+
+    public function test_when_the_payments_total_has_not_reached_the_order_amount_the_payment_status_is_part_paid()
+    {
+
+    }
+
+    public function test_when_the_payments_total_has_reached_the_order_amount_the_payment_status_is_paid()
+    {
+
+    }
+
+    public function test_payment_amount_cannot_be_zero()
+    {
+
+    }
+
+    public function test_payment_amount_cannot_be_negative()
+    {
+
+    }
+
+    public function test_total_payments_must_not_exceed_the_order_amount()
+    {
+
+    }
+
+    public function test_total_amount_paid_on_an_order_is_calculated()
+    {
+        $order = $this->getAggregate([
+            'amount' => [
+                'amount' => 100,
+                'currency' => 'GBP',
+            ],
+        ]);
+        $this->assertEquals(530, $order->getTotalAmountPaid());
+    }
 }
