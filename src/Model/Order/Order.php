@@ -3,21 +3,17 @@ declare(strict_types=1);
 
 namespace Funeralzone\Calfords\Model\Order;
 
-use Funeralzone\Calfords\Model\Order\BusinessAddress\BusinessAddress;
 use Funeralzone\Calfords\Model\Order\BusinessAddress\NonNullBusinessAddress;
-use Funeralzone\Calfords\Model\Order\BusinessName\BusinessName;
 use Funeralzone\Calfords\Model\Order\BusinessName\NonNullBusinessName;
-use Funeralzone\Calfords\Model\Order\ContactPerson\ContactPerson;
 use Funeralzone\Calfords\Model\Order\ContactPerson\NonNullContactPerson;
+use Funeralzone\Calfords\Model\Order\DatePaid\DatePaid;
 use Funeralzone\Calfords\Model\Order\Events\OrderWasCreated\OrderWasCreated;
+use Funeralzone\Calfords\Model\Order\Events\OrderWasPaid\OrderWasPaid;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustBeGreaterThanZero;
 use Funeralzone\Calfords\Model\Order\Exceptions\OrderAmountMustNotBeNegative;
 use Funeralzone\Calfords\Model\Order\OrderAmount\NonNullOrderAmount;
-use Funeralzone\Calfords\Model\Order\OrderAmount\OrderAmount;
 use Funeralzone\Calfords\Model\Order\OrderId\NonNullOrderId;
-use Funeralzone\Calfords\Model\Order\OrderId\OrderId;
-use Funeralzone\Calfords\Model\Order\OrderIsPaid\NonNullOrderIsPaid;
-use Funeralzone\Calfords\Model\Order\OrderIsPaid\OrderIsPaid;
+use Funeralzone\Calfords\Model\Order\PaymentStatus\NonNullPaymentStatus;
 use Funeralzone\FAS\FasApp\Prooph\ApplyDeltaTrait;
 use Funeralzone\FAS\FasApp\Prooph\EventSourcing\SerialisableAggregateRoot;
 use Prooph\EventSourcing\AggregateChanged;
@@ -34,10 +30,12 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     private $businessAddress;
     /** @var  NonNullContactPerson $contactPerson */
     private $contactPerson;
-    /** @var  NonNullOrderIsPaid $hasPaid */
-    private $isPaid;
+    /** @var  NonNullPaymentStatus $paymentStatus */
+    private $paymentStatus;
     /** @var  NonNullOrderAmount $amount */
     private $amount;
+    /** @var  DatePaid $datePaid */
+    private $datePaid;
 
     protected function aggregateId(): string
     {
@@ -64,14 +62,19 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         return $this->contactPerson;
     }
 
-    public function getHasPaid(): NonNullOrderIsPaid
+    public function getPaymentStatus(): NonNullPaymentStatus
     {
-        return $this->hasPaid;
+        return $this->paymentStatus;
     }
 
     public function getAmount(): NonNullOrderAmount
     {
         return $this->amount;
+    }
+
+    public function getDatePaid(): DatePaid
+    {
+        return $this->datePaid;
     }
 
     /**
@@ -103,12 +106,12 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     }
 
     public static function create(
-        OrderId $id,
-        BusinessName $businessName,
-        BusinessAddress $businessAddress,
-        ContactPerson $contactPerson,
-        OrderIsPaid $isPaid,
-        OrderAmount $amount
+        NonNullOrderId $id,
+        NonNullBusinessName $businessName,
+        NonNullBusinessAddress $businessAddress,
+        NonNullContactPerson $contactPerson,
+        NonNullPaymentStatus $paymentStatus,
+        NonNullOrderAmount $amount
     ): Order {
         if ($amount->getMoney()->isZero()) {
             throw new OrderAmountMustBeGreaterThanZero($amount);
@@ -122,8 +125,8 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
                 'businessName' => $businessName->toNative(),
                 'businessAddress' => $businessAddress->toNative(),
                 'contactPerson' => $contactPerson->toNative(),
-                'hasPaid' => $isPaid->toNative(),
                 'amount' => $amount->toNative(),
+                'paymentStatus' => $paymentStatus->toNative(),
             ])
         );
         return $instance;
@@ -131,11 +134,25 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
 
     private function applyOrderWasCreated(OrderWasCreated $event): void
     {
-        $this->id              = $event->getId();
-        $this->businessName    = $event->getBusinessName();
+        $this->id = $event->getId();
+        $this->businessName = $event->getBusinessName();
         $this->businessAddress = $event->getBusinessAddress();
-        $this->contactPerson   = $event->getContactPerson();
-        $this->isPaid          = $event->getHasPaid();
-        $this->amount          = $event->getAmount();
+        $this->contactPerson = $event->getContactPerson();
+        $this->amount = $event->getAmount();
+        $this->paymentStatus = $event->getPaymentStatus();
+        $this->datePaid = DatePaid::null();
+    }
+
+    public function pay(): void
+    {
+        $this->recordThat(
+            OrderWasPaid::occur($this->getId()->toNative())
+        );
+    }
+
+    private function applyOrderWasPaid(OrderWasPaid $event): void
+    {
+        $this->id = $event->getId();
+        $this->datePaid = DatePaid::fromNative($event->createdAt()->format(DATE_RFC3339));
     }
 }
