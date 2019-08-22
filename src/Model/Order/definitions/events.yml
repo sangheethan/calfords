@@ -39,7 +39,7 @@ model:
   type: Event
   children:
   - name: OrderId
-    propertyName: id
+    propertyName: orderId
     required: true
     fromMetaDataKey: _aggregate_id
   - name: EntityId
@@ -50,7 +50,6 @@ model:
     required: true
   - name: PaymentDate
     propertyName: date
-    required: true
   - name: PaymentAmount
     propertyName: amount
     required: true
