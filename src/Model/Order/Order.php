@@ -187,6 +187,11 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         $this->amount = $event->getAmount();
         $this->paymentStatus = $event->getPaymentStatus();
         $this->datePaid = DatePaid::null();
+        $this->paymentAmount = NonNullPaymentAmount::fromNative([
+            'amount' => 0,
+            'currency' => 'gbp'
+        ]);
+        $this->paymentStatus = NonNullPaymentStatus::UNPAID();
     }
 
     public function pay(): void
@@ -211,11 +216,11 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         if($paymentAmount->getMoney()->isZero()) {
             throw new PaymentAmountMustBeGreaterThanZero($paymentAmount);
         }
-        if($paymentAmount->getMoney()->greaterThan($this->getAmount()->getMoney())) {
-            throw new PaymentAmountMustNotExceedTotalOrderAmount($paymentAmount);
-        }
         if($paymentAmount->getMoney()->isNegative()) {
             throw new PaymentAmountMustNotBeNegative($paymentAmount);
+        }
+        if($this->getPaymentAmount()->getMoney()->add($paymentAmount->getMoney())->greaterThan($this->getAmount()->getMoney())) {
+            throw new PaymentAmountMustNotExceedTotalOrderAmount($paymentAmount);
         }
         $this->recordThat(
             PaymentWasReceived::occur(
@@ -232,17 +237,16 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
 
     private function applyPaymentWasReceived(PaymentWasReceived $event): void {
         $this->paymentID = $event->getPaymentId();
-        if($event->getAmount()->getMoney()->equals($this->getAmount()->getMoney())) {
+        $this->paymentAmount = new NonNullPaymentAmount($this->getPaymentAmount()->getMoney()->add($event->getAmount()->getMoney()));
+        if($this->getPaymentAmount()->getMoney()->equals($this->getAmount()->getMoney())) {
             $this->paymentStatus = NonNullPaymentStatus::PAID();
         }
-        if($event->getAmount()->getMoney()->lessThan($this->getAmount()->getMoney())) {
+        if($this->getPaymentAmount()->getMoney()->lessThan($this->getAmount()->getMoney())) {
             $this->paymentStatus = NonNullPaymentStatus::PART_PAID();
         }
         $this->payeeName = $event->getPayeeName();
         $this->paymentDate = PaymentDate::fromNative($event->createdAt()->format('Y-m-d'));
-        $this->paymentAmount = $event->getAmount();
         $this->paymentType = $event->getType();
-        $this->amount = new NonNullOrderAmount($this->amount->getMoney()->subtract($event->getAmount()->getMoney()));
     }
 
 }

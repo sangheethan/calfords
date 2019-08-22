@@ -287,6 +287,29 @@ final class OrderTest extends TestCase
 
     public function test_total_amount_paid_on_an_order_is_calculated()
     {
-
+        $order = $this->getAggregate([
+            "amount" => "500",
+            "currency" => "gbp",
+        ]);
+        $order->receivePayment(
+            NonNullEntityId::generate(),
+            NonNullPayeeName::fromNative('Benedict Leonard'),
+            NonNullPaymentAmount::fromNative([
+                'amount' => 70,
+                'currency' => 'gbp'
+            ]),
+            NonNullPaymentType::CARD_PAYMENT()
+        );
+        $this->assertEquals(70, $order->getPaymentAmount()->getMoney()->getAmount());
+        $order->receivePayment(
+            NonNullEntityId::generate(),
+            NonNullPayeeName::fromNative('Benedict Leonard'),
+            NonNullPaymentAmount::fromNative([
+                'amount' => 100,
+                'currency' => 'gbp'
+            ]),
+            NonNullPaymentType::CARD_PAYMENT()
+        );
+        $this->assertEquals(170, $order->getPaymentAmount()->getMoney()->getAmount());
     }
 }
