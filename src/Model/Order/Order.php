@@ -17,18 +17,16 @@ use Funeralzone\Calfords\Model\Order\Exceptions\PaymentAmountMustNotBeNegative;
 use Funeralzone\Calfords\Model\Order\Exceptions\PaymentAmountMustNotExceedTotalOrderAmount;
 use Funeralzone\Calfords\Model\Order\OrderAmount\NonNullOrderAmount;
 use Funeralzone\Calfords\Model\Order\OrderId\NonNullOrderId;
-use Funeralzone\Calfords\Model\Order\PayeeName\NonNullPayeeName;
-use Funeralzone\Calfords\Model\Order\PaymentAmount\NonNullPaymentAmount;
-use Funeralzone\Calfords\Model\Order\PaymentDate\NonNullPaymentDate;
-use Funeralzone\Calfords\Model\Order\PaymentDate\PaymentDate;
+use Funeralzone\Calfords\Model\Order\OrderTotalPaid\OrderTotalPaid;
+use Funeralzone\Calfords\Model\Order\Payment\NonNullPayment;
+use Funeralzone\Calfords\Model\Order\Payment\Payment;
+use Funeralzone\Calfords\Model\Order\Payments\Payments;
 use Funeralzone\Calfords\Model\Order\PaymentStatus\NonNullPaymentStatus;
-use Funeralzone\Calfords\Model\Order\PaymentType\NonNullPaymentType;
-use Funeralzone\FAS\DomainEntities\NonNullEntityId;
+use Funeralzone\Calfords\Model\Order\PaymentStatus\PaymentStatus;
 use Funeralzone\FAS\FasApp\Prooph\ApplyDeltaTrait;
 use Funeralzone\FAS\FasApp\Prooph\EventSourcing\SerialisableAggregateRoot;
 use Prooph\EventSourcing\AggregateChanged;
 use Prooph\EventSourcing\AggregateRoot;
-use Ramsey\Uuid\Uuid;
 
 final class Order extends AggregateRoot implements SerialisableAggregateRoot
 {
@@ -47,16 +45,9 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
     private $amount;
     /** @var  DatePaid $datePaid */
     private $datePaid;
-    /** @var  NonNullPayeeName $payeeName */
-    private $payeeName;
-    /** @var  NonNullPaymentDate $paymentDate */
-    private $paymentDate;
-    /** @var  NonNullPaymentAmount $paymentAmount */
-    private $paymentAmount;
-    /** @var  NonNullPaymentType $paymentType */
-    private $paymentType;
-    /** @var  NonNullEntityId $paymentID */
-    private $paymentID;
+    /** @var  Payments $payments */
+    private $payments;
+
 
     protected function aggregateId(): string
     {
@@ -98,29 +89,9 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         return $this->datePaid;
     }
 
-    public function getPaymentId(): NonNullEntityId
+    public function getPayments(): Payments
     {
-        return $this->paymentID;
-    }
-
-    public function getPayeeName(): NonNullPayeeName
-    {
-        return $this->payeeName;
-    }
-
-    public function getPaymentDate(): NonNullPaymentDate
-    {
-        return $this->paymentDate;
-    }
-
-    public function getPaymentAmount(): NonNullPaymentAmount
-    {
-        return $this->paymentAmount;
-    }
-
-    public function getPaymentType(): NonNullPaymentType
-    {
-        return $this->paymentType;
+        return $this->payments;
     }
 
     /**
@@ -156,7 +127,6 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         NonNullBusinessName $businessName,
         NonNullBusinessAddress $businessAddress,
         NonNullContactPerson $contactPerson,
-        NonNullPaymentStatus $paymentStatus,
         NonNullOrderAmount $amount
     ): Order {
         if ($amount->getMoney()->isZero()) {
@@ -172,7 +142,6 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
                 'businessAddress' => $businessAddress->toNative(),
                 'contactPerson' => $contactPerson->toNative(),
                 'amount' => $amount->toNative(),
-                'paymentStatus' => $paymentStatus->toNative(),
             ])
         );
         return $instance;
@@ -185,13 +154,13 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         $this->businessAddress = $event->getBusinessAddress();
         $this->contactPerson = $event->getContactPerson();
         $this->amount = $event->getAmount();
-        $this->paymentStatus = $event->getPaymentStatus();
         $this->datePaid = DatePaid::null();
-        $this->paymentAmount = NonNullPaymentAmount::fromNative([
-            'amount' => 0,
-            'currency' => 'gbp'
-        ]);
-        $this->paymentStatus = NonNullPaymentStatus::UNPAID();
+        $this->payments = Payments::null();
+        if ($event->getPaymentStatus()->isSame(PaymentStatus::PAID())) {
+            $this->paymentStatus = NonNullPaymentStatus::PAID();
+        } else {
+            $this->paymentStatus = NonNullPaymentStatus::UNPAID();
+        }
     }
 
     public function pay(): void
@@ -207,46 +176,48 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         $this->datePaid = DatePaid::fromNative($event->createdAt()->format(DATE_RFC3339));
     }
 
-    public function receivePayment(
-        NonNullEntityId $id,
-        NonNullPayeeName $payeeName,
-        NonNullPaymentAmount $paymentAmount,
-        NonNullPaymentType $paymentType
-    ): void {
-        if($paymentAmount->getMoney()->isZero()) {
-            throw new PaymentAmountMustBeGreaterThanZero($paymentAmount);
+    public function receivePayment(NonNullPayment $payment): void
+    {
+        if ($payment->getAmount()->getMoney()->isZero()) {
+            throw new PaymentAmountMustBeGreaterThanZero($payment->getAmount());
         }
-        if($paymentAmount->getMoney()->isNegative()) {
-            throw new PaymentAmountMustNotBeNegative($paymentAmount);
+        if ($payment->getAmount()->getMoney()->isNegative()) {
+            throw new PaymentAmountMustNotBeNegative($payment->getAmount());
         }
-        if($this->getPaymentAmount()->getMoney()->add($paymentAmount->getMoney())->greaterThan($this->getAmount()->getMoney())) {
-            throw new PaymentAmountMustNotExceedTotalOrderAmount($paymentAmount);
+        if ($this->getTotalPaid()->getMoney()->add($payment->getAmount()->getMoney())->greaterThan($this->getAmount()->getMoney())) {
+            throw new PaymentAmountMustNotExceedTotalOrderAmount($payment->getAmount());
         }
         $this->recordThat(
             PaymentWasReceived::occur(
                 $this->getId()->toNative(),
                 [
-                    'paymentId' => $id->toNative(),
-                    'payeeName' => $payeeName->toNative(),
-                    'amount' => $paymentAmount->toNative(),
-                    'type' => $paymentType->toNative(),
+                    'payment'=> $payment->toNative(),
                 ]
             )
         );
     }
 
-    private function applyPaymentWasReceived(PaymentWasReceived $event): void {
-        $this->paymentID = $event->getPaymentId();
-        $this->paymentAmount = new NonNullPaymentAmount($this->getPaymentAmount()->getMoney()->add($event->getAmount()->getMoney()));
-        if($this->getPaymentAmount()->getMoney()->equals($this->getAmount()->getMoney())) {
+    private function applyPaymentWasReceived(PaymentWasReceived $event): void
+    {
+        $this->payments = $this->payments->withNativeEntities([$event->getPayment()->toNative()]);
+        if ($this->getTotalPaid()->getMoney()->greaterThanOrEqual($this->getAmount()->getMoney())) {
             $this->paymentStatus = NonNullPaymentStatus::PAID();
-        }
-        if($this->getPaymentAmount()->getMoney()->lessThan($this->getAmount()->getMoney())) {
+        } else {
             $this->paymentStatus = NonNullPaymentStatus::PART_PAID();
         }
-        $this->payeeName = $event->getPayeeName();
-        $this->paymentDate = PaymentDate::fromNative($event->createdAt()->format('Y-m-d'));
-        $this->paymentType = $event->getType();
+    }
+
+    public function getTotalPaid(): OrderTotalPaid
+    {
+        $orderTotalPaid = OrderTotalPaid::null();
+        /** @var Payment $payment */
+        foreach ($this->payments->all() as $payment) {
+            $orderTotalPaid = OrderTotalPaid::fromNative([
+                'amount' => $orderTotalPaid->getMoney()->add($payment->getAmount()->getMoney())->getAmount(),
+                'currency' => $payment->getAmount()->getMoney()->getCurrency()->getCode()
+            ]);
+        }
+        return $orderTotalPaid;
     }
 
 }

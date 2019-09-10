@@ -17,11 +17,11 @@ use Funeralzone\Calfords\Model\Order\Exceptions\PaymentAmountMustNotBeNegative;
 use Funeralzone\Calfords\Model\Order\Exceptions\PaymentAmountMustNotExceedTotalOrderAmount;
 use Funeralzone\Calfords\Model\Order\OrderAmount\NonNullOrderAmount;
 use Funeralzone\Calfords\Model\Order\OrderId\NonNullOrderId;
-use Funeralzone\Calfords\Model\Order\PayeeName\NonNullPayeeName;
-use Funeralzone\Calfords\Model\Order\PaymentAmount\NonNullPaymentAmount;
+use Funeralzone\Calfords\Model\Order\Payment\NonNullPayment;
 use Funeralzone\Calfords\Model\Order\PaymentStatus\NonNullPaymentStatus;
 use Funeralzone\Calfords\Model\Order\PaymentType\NonNullPaymentType;
 use Funeralzone\FAS\Common\AggregateTestingTrait;
+use Funeralzone\FAS\DomainEntities\EntityId;
 use Funeralzone\FAS\DomainEntities\NonNullEntityId;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -80,7 +80,6 @@ final class OrderTest extends TestCase
                 'countryCode' => "GB",
             ]),
             NonNullContactPerson::fromNative("Jimmy Neutron"),
-            NonNullPaymentStatus::UNPAID(),
             NonNullOrderAmount::fromNative([
                 "amount" => $amount,
                 "currency" => "gbp",
@@ -105,7 +104,6 @@ final class OrderTest extends TestCase
                 'countryCode' => "GB",
             ]),
             NonNullContactPerson::fromNative("Jimmy Neutron"),
-            NonNullPaymentStatus::UNPAID(),
             NonNullOrderAmount::fromNative([
                 "amount" => $amount,
                 "currency" => "gbp",
@@ -134,7 +132,7 @@ final class OrderTest extends TestCase
             "amount" => "50",
             "currency" => "gbp",
         ]);
-        $this->assertEquals(NonNullPaymentStatus::UNPAID(), $order->getPaymentStatus());
+        $this->assertEquals(NonNullPaymentStatus::UNPAID()->toNative(), $order->getPaymentStatus()->toNative());
     }
 
     public function test_when_the_payments_total_has_not_reached_the_order_amount_the_payment_status_is_part_paid()
@@ -155,23 +153,25 @@ final class OrderTest extends TestCase
                 'paymentStatus' => NonNullPaymentStatus::UNPAID()->toNative(),
                 'amount' => [
                     'amount' => 600,
-                    'currency' => 'gbp'
+                    'currency' => 'GBP'
                 ],
             ]);
         $partPaymentReceived = PaymentWasReceived::occur($id, [
-            'paymentId' => NonNullEntityId::generate()->toNative(),
-            'payeeName' => 'Jonathan Benedict',
-            'amount' => [
-                'amount' => 150,
-                'currency' => 'gbp'
+            'payment' => [
+                'id' => NonNullEntityId::generate()->toNative(),
+                'payeeName' => 'Jonathan Benedict',
+                'amount' => [
+                    'amount' => 150,
+                    'currency' => 'GBP'
+                ],
+                'type' => NonNullPaymentType::CARD_PAYMENT()->toNative(),
             ],
-            'type' => NonNullPaymentType::CARD_PAYMENT()->toNative()
         ]);
         $order = $this->getAggregateWithEvents([
             $orderCreated,
             $partPaymentReceived,
         ]);
-        $this->assertEquals(NonNullPaymentStatus::PART_PAID(), $order->getPaymentStatus());
+        $this->assertEquals(NonNullPaymentStatus::PART_PAID()->toNative(), $order->getPaymentStatus()->toNative());
     }
 
     public function test_when_the_payments_total_has_reached_the_order_amount_the_payment_status_is_paid()
@@ -192,35 +192,42 @@ final class OrderTest extends TestCase
             'paymentStatus' => NonNullPaymentStatus::UNPAID()->toNative(),
             'amount' => [
                 'amount' => 600,
-                'currency' => 'gbp'
+                'currency' => 'GBP'
             ],
         ]);
+
         $partPaymentReceived = PaymentWasReceived::occur($id, [
-            'paymentId' => NonNullEntityId::generate()->toNative(),
-            'payeeName' => 'Jonathan Benedict',
-            'amount' => [
-                'amount' => 150,
-                'currency' => 'gbp'
+            'payment' => [
+                'id' => NonNullEntityId::generate()->toNative(),
+                'payeeName' => 'Jonathan Benedict',
+                'amount' => [
+                    'amount' => 150,
+                    'currency' => 'GBP'
+                ],
+                'type' => NonNullPaymentType::CARD_PAYMENT()->toNative(),
             ],
-            'type' => NonNullPaymentType::CARD_PAYMENT()->toNative()
         ]);
         $partPaymentReceived2 = PaymentWasReceived::occur($id, [
-            'paymentId' => NonNullEntityId::generate()->toNative(),
-            'payeeName' => 'Jonathan Benedict',
-            'amount' => [
-                'amount' => 150,
-                'currency' => 'gbp'
+            'payment' => [
+                'id' => NonNullEntityId::generate()->toNative(),
+                'payeeName' => 'Jonathan Benedict',
+                'amount' => [
+                    'amount' => 150,
+                    'currency' => 'GBP'
+                ],
+                'type' => NonNullPaymentType::CARD_PAYMENT()->toNative(),
             ],
-            'type' => NonNullPaymentType::CARD_PAYMENT()->toNative()
         ]);
         $partPaymentReceived3 = PaymentWasReceived::occur($id, [
-            'paymentId' => NonNullEntityId::generate()->toNative(),
-            'payeeName' => 'Jonathan Benedict',
-            'amount' => [
-                'amount' => 300,
-                'currency' => 'gbp'
+            'payment' => [
+                'id' => NonNullEntityId::generate()->toNative(),
+                'payeeName' => 'Jonathan Benedict',
+                'amount' => [
+                    'amount' => 300,
+                    'currency' => 'GBP'
+                ],
+                'type' => NonNullPaymentType::CARD_PAYMENT()->toNative(),
             ],
-            'type' => NonNullPaymentType::CARD_PAYMENT()->toNative()
         ]);
         $order = $this->getAggregateWithEvents([
             $orderCreated,
@@ -235,81 +242,86 @@ final class OrderTest extends TestCase
     {
         $this->expectException(PaymentAmountMustBeGreaterThanZero::class);
         $order = $this->getAggregate([
-            "amount" => "50",
-            "currency" => "gbp",
+            'amount' => 50,
+            'currency' => 'GBP',
         ]);
-        $order->receivePayment(
-            NonNullEntityId::generate(),
-            NonNullPayeeName::fromNative('Benedict Leonard'),
-            NonNullPaymentAmount::fromNative([
+        $payment = NonNullPayment::fromNative([
+            'id' => EntityId::generate()->toNative(),
+            'payeeName' => 'Benedict Leonard',
+            'amount' => [
                 'amount' => 0,
-                'currency' => 'gbp'
-            ]),
-            NonNullPaymentType::CARD_PAYMENT()
-        );
+                'currency' => 'GBP',
+            ],
+            'type' => NonNullPaymentType::CARD_PAYMENT()->toNative(),
+        ]);
+        $order->receivePayment($payment);
     }
 
     public function test_payment_amount_cannot_be_negative()
     {
         $this->expectException(PaymentAmountMustNotBeNegative::class);
         $order = $this->getAggregate([
-            "amount" => "50",
-            "currency" => "gbp",
+            'amount' => 50,
+            'currency' => 'GBP',
         ]);
-        $order->receivePayment(
-            NonNullEntityId::generate(),
-            NonNullPayeeName::fromNative('Benedict Leonard'),
-            NonNullPaymentAmount::fromNative([
+        $payment = NonNullPayment::fromNative([
+            'id' => EntityId::generate()->toNative(),
+            'payeeName' => 'Benedict Leonard',
+            'amount' => [
                 'amount' => -40,
-                'currency' => 'gbp'
-            ]),
-            NonNullPaymentType::CARD_PAYMENT()
-        );
+                'currency' => 'GBP',
+            ],
+            'type' => NonNullPaymentType::CARD_PAYMENT()->toNative(),
+        ]);
+        $order->receivePayment($payment);
     }
 
     public function test_total_payments_must_not_exceed_the_order_amount()
     {
         $this->expectException(PaymentAmountMustNotExceedTotalOrderAmount::class);
         $order = $this->getAggregate([
-            "amount" => "50",
-            "currency" => "gbp",
+            'amount' => 50,
+            'currency' => 'GBP',
         ]);
-        $order->receivePayment(
-            NonNullEntityId::generate(),
-            NonNullPayeeName::fromNative('Benedict Leonard'),
-            NonNullPaymentAmount::fromNative([
+        $payment = NonNullPayment::fromNative([
+            'id' => EntityId::generate()->toNative(),
+            'payeeName' => 'Benedict Leonard',
+            'amount' => [
                 'amount' => 70,
-                'currency' => 'gbp'
-            ]),
-            NonNullPaymentType::CARD_PAYMENT()
-        );
+                'currency' => 'GBP',
+            ],
+            'type' => NonNullPaymentType::CARD_PAYMENT()->toNative(),
+        ]);
+        $order->receivePayment($payment);
     }
 
     public function test_total_amount_paid_on_an_order_is_calculated()
     {
         $order = $this->getAggregate([
-            "amount" => "500",
-            "currency" => "gbp",
+            "amount" => 500,
+            "currency" => 'GBP',
         ]);
-        $order->receivePayment(
-            NonNullEntityId::generate(),
-            NonNullPayeeName::fromNative('Benedict Leonard'),
-            NonNullPaymentAmount::fromNative([
+        $payment = NonNullPayment::fromNative([
+            'id' => EntityId::generate()->toNative(),
+            'payeeName' => 'Benedict Leonard',
+            'amount' => [
                 'amount' => 70,
-                'currency' => 'gbp'
-            ]),
-            NonNullPaymentType::CARD_PAYMENT()
-        );
-        $this->assertEquals(70, $order->getPaymentAmount()->getMoney()->getAmount());
-        $order->receivePayment(
-            NonNullEntityId::generate(),
-            NonNullPayeeName::fromNative('Benedict Leonard'),
-            NonNullPaymentAmount::fromNative([
+                'currency' => 'GBP',
+            ],
+            'type' => NonNullPaymentType::CARD_PAYMENT()->toNative(),
+        ]);
+        $order->receivePayment($payment);
+        $this->assertEquals(70, $order->getTotalPaid()->getMoney()->getAmount());
+        $payment = NonNullPayment::fromNative([
+            'id' => EntityId::generate()->toNative(),
+            'payeeName' => 'Benedict Leonard',
+            'amount' => [
                 'amount' => 100,
-                'currency' => 'gbp'
-            ]),
-            NonNullPaymentType::CARD_PAYMENT()
-        );
-        $this->assertEquals(170, $order->getPaymentAmount()->getMoney()->getAmount());
+                'currency' => 'GBP',
+            ],
+            'type' => NonNullPaymentType::CARD_PAYMENT()->toNative(),
+        ]);
+        $order->receivePayment($payment);
+        $this->assertEquals(170, $order->getTotalPaid()->getMoney()->getAmount());
     }
 }

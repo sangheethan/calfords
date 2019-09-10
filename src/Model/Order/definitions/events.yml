@@ -22,7 +22,6 @@ model:
     required: true
   - name: PaymentStatus
     propertyName: paymentStatus
-    required: true
   - name: OrderAmount
     propertyName: amount
     required: true
@@ -42,17 +41,7 @@ model:
     propertyName: orderId
     required: true
     fromMetaDataKey: _aggregate_id
-  - name: EntityId
-    propertyName: paymentId
+  - name: Payment
+    propertyName: payment
     required: true
-  - name: PayeeName
-    propertyName: payeeName
-    required: true
-  - name: PaymentDate
-    propertyName: date
-  - name: PaymentAmount
-    propertyName: amount
-    required: true
-  - name: PaymentType
-    propertyName: type
-    required: true
+

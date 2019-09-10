@@ -42,3 +42,27 @@ model:
     - CARD_PAYMENT
     - BANK_TRANSFER
     - CASH
+
+- name: Payment
+  type: Entity
+  children:
+    - name: EntityId
+      propertyName: id
+      required: true
+    - name: PayeeName
+      propertyName: payeeName
+    - name: PaymentDate
+      propertyName: date
+    - name: PaymentAmount
+      propertyName: amount
+      required: true
+    - name: PaymentType
+      propertyName: type
+      required: true
+
+- name: Payments
+  type: EntitySet
+  modelToEnforce: Payment
+
+- name: OrderTotalPaid
+  type: Money
