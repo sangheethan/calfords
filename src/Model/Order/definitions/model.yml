@@ -14,8 +14,55 @@ model:
 - name: ContactPerson
   type: String
 
-- name: OrderIsPaid
-  type: Boolean
+- name: PaymentStatus
+  type: Enum
+  values:
+    - UNPAID
+    - PART_PAID
+    - PAID
 
 - name: OrderAmount
+  type: Money
+
+- name: DatePaid
+  type: RFC3339
+
+- name: PayeeName
+  type: String
+
+- name: PaymentDate
+  type: Date
+
+- name: PaymentAmount
+  type: Money
+
+- name: PaymentType
+  type: Enum
+  values:
+    - CARD_PAYMENT
+    - BANK_TRANSFER
+    - CASH
+
+- name: Payment
+  type: Entity
+  children:
+    - name: EntityId
+      propertyName: id
+      required: true
+    - name: PayeeName
+      propertyName: payeeName
+    - name: PaymentDate
+      propertyName: date
+    - name: PaymentAmount
+      propertyName: amount
+      required: true
+    - name: PaymentType
+      propertyName: type
+      required: true
+
+- name: Payments
+  type: EntitySet
+  modelToEnforce: Payment
+
+- name: OrderTotalPaid
   type: Money

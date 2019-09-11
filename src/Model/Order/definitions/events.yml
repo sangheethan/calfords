@@ -20,9 +20,28 @@ model:
   - name: ContactPerson
     propertyName: contactPerson
     required: true
-  - name: OrderIsPaid
-    propertyName: isPaid
-    required: true
+  - name: PaymentStatus
+    propertyName: paymentStatus
   - name: OrderAmount
     propertyName: amount
     required: true
+
+- name: OrderWasPaid
+  type: Event
+  children:
+  - name: OrderId
+    propertyName: id
+    required: true
+    fromMetaDataKey: _aggregate_id
+
+- name: PaymentWasReceived
+  type: Event
+  children:
+  - name: OrderId
+    propertyName: orderId
+    required: true
+    fromMetaDataKey: _aggregate_id
+  - name: Payment
+    propertyName: payment
+    required: true
+

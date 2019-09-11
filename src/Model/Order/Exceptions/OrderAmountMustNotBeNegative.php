@@ -1,13 +1,7 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: sang
- * Date: 15/08/2019
- * Time: 17:22
- */
+declare(strict_types=1);
 
 namespace Funeralzone\Calfords\Model\Order\Exceptions;
-
 
 use Funeralzone\Calfords\Model\Order\OrderAmount\OrderAmount;
 use Funeralzone\FAS\Common\Exceptions\AbstractDomainException;
