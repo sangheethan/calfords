@@ -11,6 +11,11 @@ final class PaymentAmountMustBeGreaterThanZero extends AbstractDomainException i
 {
     public function __construct(PaymentAmount $amount)
     {
-        parent::__construct(sprintf('The payment amount % is invalid. Payment amount should be greater than zero.', $amount->toNative()['amount']));
+        parent::__construct(
+            sprintf(
+                'The payment amount % is invalid. Payment amount should be greater than zero.',
+                $amount->toNative()['amount']
+            )
+        );
     }
 }

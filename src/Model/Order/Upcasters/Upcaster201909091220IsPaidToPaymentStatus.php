@@ -38,7 +38,7 @@ final class Upcaster201909091220IsPaidToPaymentStatus extends SingleEventUpcaste
     {
         $messageArray = $this->messageConverter->convertToArray($message);
         $isPaid = $messageArray['payload']['isPaid'] ?? null;
-        if($isPaid !== null) {
+        if ($isPaid !== null) {
             $messageArray['payload']['paymentStatus'] = $isPaid ?
                 PaymentStatus::PAID()->toNative() : PaymentStatus::UNPAID()->toNative();
         }

@@ -178,14 +178,16 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
 
     public function receivePayment(NonNullPayment $payment): void
     {
+        $order = $this;
         if ($payment->getAmount()->getMoney()->isZero()) {
             throw new PaymentAmountMustBeGreaterThanZero($payment->getAmount());
         }
         if ($payment->getAmount()->getMoney()->isNegative()) {
             throw new PaymentAmountMustNotBeNegative($payment->getAmount());
         }
-        if ($this->getTotalPaid()->getMoney()->add($payment->getAmount()->getMoney())->greaterThan($this->getAmount()->getMoney())) {
-            throw new PaymentAmountMustNotExceedTotalOrderAmount($payment->getAmount());
+        $totalPaid = $this->getTotalPaid()->getMoney()->add($payment->getAmount()->getMoney());
+        if ($totalPaid->greaterThan($order->getAmount()->getMoney())) {
+            throw new PaymentAmountMustNotExceedTotalOrderAmount($order->getAmount(), $payment->getAmount());
         }
         $this->recordThat(
             PaymentWasReceived::occur(
@@ -219,5 +221,4 @@ final class Order extends AggregateRoot implements SerialisableAggregateRoot
         }
         return $orderTotalPaid;
     }
-
 }

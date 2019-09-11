@@ -11,6 +11,11 @@ final class PaymentAmountMustNotBeNegative extends AbstractDomainException imple
 {
     public function __construct(PaymentAmount $amount)
     {
-        parent::__construct(sprintf('The payment amount % is invalid. Payment amount should not be negative.', $amount->toNative()['amount']));
+        parent::__construct(
+            sprintf(
+                'The payment amount % is invalid. Payment amount should not be negative.',
+                $amount->toNative()['amount']
+            )
+        );
     }
 }
